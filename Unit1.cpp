@@ -1,0 +1,358 @@
+//---------------------------------------------------------------------------
+
+#include <vcl.h>
+#pragma hdrstop
+#include "mmsystem.h"
+#include "Unit1.h"
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+#pragma resource "*.dfm"
+
+TForm1 *Form1;
+
+bool gameON = false;
+AnsiString ballPictureName = "img/leftSnitch.bmp";
+int x=-10, y=-10;
+int xb1=-15, yb1=-15;
+int xb2=10, yb2=-15;
+int pointsOfLeftPlayer = 0;
+int pointsOfRightPlayer = 0;
+
+void changePicture()
+{
+ if (ballPictureName == "img/leftSnitch.bmp")
+ {
+ Form1 -> ball -> Picture -> LoadFromFile("img/rightSnitch.bmp");
+ ballPictureName = "img/rightSnitch.bmp";
+ }
+ else if  (ballPictureName == "img/rightSnitch.bmp")
+ {
+ Form1 -> ball -> Picture -> LoadFromFile("img/leftSnitch.bmp");
+ ballPictureName = "img/leftSnitch.bmp";
+ }
+}
+
+bool clash (TImage *ball, TImage *bludger)
+{
+     if (ball->Left > bludger->Left-ball->Width &&
+         ball->Left < bludger->Left+bludger->Width &&
+         ball->Top > bludger->Top-ball->Height &&
+         ball->Top < bludger->Top+bludger->Height) {
+      //{sndPlaySound("snd/clash.wav", SND_ASYNC);
+     return true;    }
+}
+
+//---------------------------------------------------------------------------
+__fastcall TForm1::TForm1(TComponent* Owner)
+        : TForm(Owner)
+{
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::FormKeyDown(TObject *Sender, WORD &Key,
+      TShiftState Shift)
+{
+   if (Key == 0x41) up->Enabled=true;
+   if (Key == 0x5A) down->Enabled=true;
+   if (Key == VK_UP) upright->Enabled=true;
+   if (Key == VK_DOWN) downright->Enabled=true;
+}
+//---------------------------------------------------------------------------
+
+
+//---------------------------------------------------------------------------
+void __fastcall TForm1::FormKeyUp(TObject *Sender, WORD &Key,
+      TShiftState Shift)
+{
+   if (Key == 0x41) up->Enabled=false;
+   if (Key == 0x5A) down->Enabled=false;
+   if (Key == VK_UP) upright->Enabled=false;
+   if (Key == VK_DOWN) downright->Enabled=false;
+}
+//---------------------------------------------------------------------------
+
+
+void __fastcall TForm1::timerBallTimer(TObject *Sender)
+{
+   if (gameON == true) {
+   ball -> Left +=x;
+   ball -> Top +=y;
+
+   //left wall
+   if (ball -> Left+5 <= background -> Left)
+   {
+   timerBall -> Enabled=false;
+   ball -> Visible=false;
+   bludger1 -> Visible=false;
+   bludger2 -> Visible=false;
+   pointsOfRightPlayer++;
+   Label1->Caption = "Score goes to the Right Player";
+   Label1->Visible=true;
+   Label2->Caption = IntToStr(pointsOfLeftPlayer) + " : " + IntToStr(pointsOfRightPlayer);
+   Button1->Visible=true;
+   Button2->Visible=true;
+   Button3->Visible=true;
+   gameON=false;
+   }
+   else
+   //hitting the left broom
+   if (ball->Top > leftBroom->Top && ball->Top < leftBroom->Top+leftBroom->Height && ball->Left <= leftBroom->Left+leftBroom->Width)
+        {
+            // sndPlaySound("snd/clash.wav", SND_ASYNC);
+             if (x<0)
+             {
+             changePicture();
+             x=-x;}
+        }
+
+   //top wall
+   if (ball -> Top+5 <= background -> Top) y=-y;
+
+   //right wall
+   if (ball -> Left+ball->Width+5 >= background -> Width)
+   {
+   timerBall -> Enabled=false;
+   ball -> Visible=false;
+   bludger1 -> Visible=false;
+   pointsOfLeftPlayer++;
+   Label1->Caption = "Score goes to the Left Player";
+   Label1->Visible=true;
+   Label2->Caption = IntToStr(pointsOfLeftPlayer) + " : " + IntToStr(pointsOfRightPlayer);
+   Button1->Visible=true;
+   Button2->Visible=true;
+   Button3->Visible=true;
+   gameON=false;
+   }
+   else
+   //hitting the right broom
+   if (ball->Top > rightBroom->Top && ball->Top < rightBroom->Top+rightBroom->Height && ball->Left+ball->Width > rightBroom->Left)
+        {
+       // sndPlaySound("snd/clash.wav", SND_ASYNC);
+        if (x>0)
+        {
+        changePicture();
+        x=-x;}
+        }
+
+   //bottom wall
+   if (ball -> Top+ball->Height+5 >= background -> Height) y=-y;
+
+   //clash with bludger1
+   if (clash(ball, bludger1)==true) {changePicture(); x=-x; y=-y; xb1=-xb1; yb1=-yb1;}
+
+   //clash with bludger2
+   if (clash(ball, bludger2)==true) {changePicture(); x=-x; y=-y; xb2=-xb2; yb2=-yb2;}
+
+   //clash of bludgers
+   if (clash(bludger1, bludger2)==true) {xb1=-xb1; yb1=-yb1; xb2=-xb2; yb2=-yb2;}
+  }
+}
+//---------------------------------------------------------------------------
+
+
+
+void __fastcall TForm1::upTimer(TObject *Sender)
+{
+   if (leftBroom -> Top > 1) leftBroom -> Top -=10;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::downTimer(TObject *Sender)
+{
+   if (leftBroom -> Top + leftBroom -> Height < background->Height -10) leftBroom -> Top +=10;
+}
+//---------------------------------------------------------------------------
+
+
+void __fastcall TForm1::uprightTimer(TObject *Sender)
+{
+   if (rightBroom -> Top > 1) rightBroom -> Top -=10;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::downrightTimer(TObject *Sender)
+{
+   if (rightBroom -> Top + rightBroom -> Height < background->Height -10) rightBroom -> Top +=10;
+}
+//---------------------------------------------------------------------------
+
+
+void __fastcall TForm1::Label1Click(TObject *Sender)
+{
+   if (gameON == false)
+   {
+   Form1->Label1-> Caption = "Next round starts in 2";
+   Application->ProcessMessages(); Sleep(1000);
+   Form1->Label1-> Caption = "Next round starts in 1";
+   Application->ProcessMessages();  Sleep(1000);
+   Form1->Label1-> Caption = "Let's start!";
+   Application->ProcessMessages(); Sleep(1000);
+
+   gameON = true;
+  // sndPlaySound("snd/start.wav", SND_ASYNC);
+   Label1->Visible = false;
+
+      Label2->Caption = IntToStr(pointsOfLeftPlayer) + " : " + IntToStr(pointsOfRightPlayer);
+   }
+}
+//---------------------------------------------------------------------------
+
+
+
+void __fastcall TForm1::Button2Click(TObject *Sender)
+{
+Form1->ball -> Picture -> LoadFromFile("img/leftSnitch.bmp");
+ballPictureName = "img/leftSnitch.bmp";
+
+Button1->Visible=false;
+Button2->Visible=false;
+Button3->Visible=false;
+
+pointsOfLeftPlayer = 0;
+pointsOfRightPlayer = 0;
+x=-10;
+y=-10;
+
+Label2->Caption = IntToStr(pointsOfLeftPlayer) + " : " + IntToStr(pointsOfRightPlayer);
+
+ball -> Left=550;
+ball -> Top=8;
+ball -> Visible=true;
+
+bludger1 -> Left=440;
+bludger1 -> Top=15;
+bludger1 -> Visible=true;
+
+bludger2 -> Left=660;
+bludger2 -> Top=15;
+bludger2 -> Visible=true;
+//odliczanie
+gameON = false;
+timerBall -> Enabled=true;
+Form1->Label1Click(Sender);
+}
+
+//---------------------------------------------------------------------------
+
+
+void __fastcall TForm1::Button1Click(TObject *Sender)
+{
+Button1->Visible=false;
+Button2->Visible=false;
+Button3->Visible=false;
+
+Form1->ball -> Picture -> LoadFromFile("img/leftSnitch.bmp");
+ballPictureName = "img/leftSnitch.bmp";
+
+x=-10;
+y=-10;
+
+ball -> Left=550;
+ball -> Top=8;
+ball -> Visible=true;
+bludger1 -> Visible=true;
+bludger2 -> Visible=true;
+gameON = false;
+timerBall -> Enabled=true;
+Form1->Label1Click(Sender);
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::timerBludger1Timer(TObject *Sender)
+{
+if (gameON == true) {
+
+   bludger1 -> Left +=xb1;
+   bludger1 -> Top +=yb1;
+
+   //left wall
+   if (bludger1 -> Left+5 <= background -> Left) xb1=-xb1;
+
+   //top wall
+   if (bludger1 -> Top+5 <= background -> Top) yb1=-yb1;
+
+   //right wall
+   if (bludger1 -> Left+bludger1->Width+5 >= background -> Width) xb1=-xb1;
+
+   //bottom wall
+   if (bludger1 -> Top+bludger1->Height+5 >= background -> Height) yb1=-yb1;
+
+   //hitting the left broom
+   if (bludger1->Top > leftBroom->Top && bludger1->Top < leftBroom->Top+leftBroom->Height && bludger1->Left <= leftBroom->Left+leftBroom->Width)
+        {
+             if (xb1<0) xb1=-xb1;
+        }
+
+   //hitting the right broom
+   if (bludger1->Top > rightBroom->Top && bludger1->Top < rightBroom->Top+rightBroom->Height && bludger1->Left+bludger1->Width > rightBroom->Left)
+        {
+             if (xb1>0) xb1=-xb1;
+        }
+  }
+}
+//---------------------------------------------------------------------------
+
+
+
+void __fastcall TForm1::timerBludger2Timer(TObject *Sender)
+{
+if (gameON == true) {
+
+   bludger2 -> Left +=xb2;
+   bludger2 -> Top +=yb2;
+
+   //left wall
+   if (bludger2 -> Left+5 <= background -> Left) xb2=-xb2;
+
+   //top wall
+   if (bludger2 -> Top+5 <= background -> Top) yb2=-yb2;
+
+   //right wall
+   if (bludger2 -> Left+bludger2->Width+5 >= background -> Width) xb2=-xb2;
+
+   //bottom wall
+   if (bludger2 -> Top+bludger2->Height+5 >= background -> Height) yb2=-yb2;
+
+   //hitting the left broom
+   if (bludger2->Top > leftBroom->Top && bludger2->Top < leftBroom->Top+leftBroom->Height && bludger2->Left <= leftBroom->Left+leftBroom->Width)
+        {
+             if (xb2<0) xb2=-xb2;
+        }
+
+   //hitting the right broom
+   if (bludger2->Top > rightBroom->Top && bludger2->Top < rightBroom->Top+rightBroom->Height && bludger2->Left+bludger2->Width > rightBroom->Left)
+        {
+             if (xb2>0) xb2=-xb2;
+        }
+  }
+
+}
+//---------------------------------------------------------------------------
+
+
+
+
+
+
+void __fastcall TForm1::FormClose(TObject *Sender, TCloseAction &Action)
+{
+   if (Application -> MessageBox(
+   "Are you sure to quit game?", "Quit", MB_YESNO | MB_ICONQUESTION) == IDYES)
+   {
+   Application -> Terminate();
+   }
+   else Action = caNone;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Button3Click(TObject *Sender)
+{
+   if (Application -> MessageBox(
+   "Are you sure to quit game?", "Quit", MB_YESNO | MB_ICONQUESTION) == IDNO)
+   {
+   Action = caNone;
+   }
+   else  Application -> Terminate();
+}
+//---------------------------------------------------------------------------
+
